@@ -6,17 +6,17 @@ TRIGGER = 2.45 #minimum potential to activate the neuron
 DECAY = 0.25   #decay of the potential for each timestep
 MAX_TIME = 20
 
-MIN_INITIAL_NODES = 20
-MAX_INITIAL_NODES = 50
+MIN_INITIAL_NODES = 20 #20
+MAX_INITIAL_NODES = 50 #50
 MAX_MIDDLE_SIZE = 80
 
 POPULATION_SIZE = 30
 
-MUTATION_PROB_EDGES= 0.01 #probability of adding or removing an edge
-MUTATION_PROB_WEIGHTS= 0.3 #probability of changing the or removing an edge
+MUTATION_PROB_EDGES= 0.005 #probability of adding or removing an edge
+MUTATION_PROB_WEIGHTS= 0.02 #probability of changing the or removing an edge
 MAX_SEVERITY_OF_MUTATION=0.2 #maximum severity of a mutation allowed
 
-CROSSOVER_PROB = 0.05
+CROSSOVER_PROB = 0.005
 NEW_NODE_PROB = 0.01
 
 #minimum probability to append a new branch
@@ -41,17 +41,17 @@ class Edge():
         self.weight=weight
 
     def __repr__(self):
-        return f"Connected with Node {self.node.id}-{self.node.type}, weight: {self.weight}, actual_input_signal: {self.node.input_signal}"
+        return f"Connected with Node {self.node.id}-{self.node.type} id:{id(self.node)}, weight: {self.weight}, actual_input_signal: {self.node.input_signal}"
 
     def __str__(self):
-        return f"Connected with Node {self.node.id}-{self.node.type}, weight: {self.weight}, actual_input_signal: {self.node.input_signal}"
+        return f"Connected with Node {self.node.id}-{self.node.type} id:{id(self.node)}, weight: {self.weight}, actual_input_signal: {self.node.input_signal}"
 
     def __deepcopy__(self, memo):
         cls = self.__class__ # Extract the class of the object
         result = cls.__new__(cls) # Create a new instance of the object based on extracted class
         memo[id(self)] = result
         for k, v in self.__dict__.items():
-            setattr(result, k, copy.copy(v)) # Copy over attributes by copying directly or in case of complex objects like lists for exaample calling the `__deepcopy()__` method defined by them. Thus recursively copying the whole tree of objects.
+            setattr(result, k, copy.deepcopy(v,memo)) # Copy over attributes by copying directly or in case of complex objects like lists for exaample calling the `__deepcopy()__` method defined by them. Thus recursively copying the whole tree of objects.
         return result
 
 class Node():
@@ -80,17 +80,14 @@ class Node():
             n.node.input_signal += self.neuron_output*n.weight
         self.potential = 0
 
-
-
-
     def __repr__(self):
-        base= f"\nNode {self.id}, type: {self.type}, actual_potential: {self.potential}, actual_input: {self.input_signal}, trigger: {self.trigger}\n"
+        base= f"\nNode {self.id} {id(self)}, type: {self.type}, actual_potential: {self.potential}, actual_input: {self.input_signal}, trigger: {self.trigger}\n"
         for i in self.neighbours:
             base += f"{i}, "
         return base
 
     def __str__(self):
-        base= f"\nNode {self.id}, type: {self.type}, actual_potential: {self.potential}, actual_input: {self.input_signal}, trigger: {self.trigger}\n"
+        base= f"\nNode {self.id} {id(self)}, type: {self.type}, actual_potential: {self.potential}, actual_input: {self.input_signal}, trigger: {self.trigger}\n"
         for i in self.neighbours:
             base += f"\t{i}\n"
         return base
@@ -166,7 +163,8 @@ class Graph():
     @classmethod
     def fromParents(cls, parent_1, parent_2, input_size=INPUT_SIZE,output_size=OUTPUT_SIZE):
         """generate graph from parents"""
-        middle_size = random.choice((parent_1.middle_size,parent_2.middle_size))
+        # middle_size = random.choice((parent_1.middle_size,parent_2.middle_size))
+        middle_size = parent_1.middle_size
         total_size= input_size+middle_size+output_size
         parent_base = None
         other_parent = None
@@ -178,13 +176,13 @@ class Graph():
             nodes = copy.deepcopy(parent_2.nodes)
             parent_base = parent_1
             other_parent = parent_2
-
-        # for n in nodes:
-        #     print(type(n))
-        #     for e in n.neighbours:
-        #         print(f"\t{type(e)}")
-        #         print(f"\t\t{type(e.node)}")
-        #crossover
+        # print(f"Parent base: {parent_base.total_size}")
+        # # for n in nodes:
+        # #     print(type(n))
+        # #     for e in n.neighbours:
+        # #         print(f"\t{type(e)}")
+        # #         print(f"\t\t{type(e.node)}")
+        # #crossover
         for i in range(len(nodes)):
             if nodes[i].type == "input" or nodes[i].type == "middle": #not needed crossover on output layer
                 if random.random() < CROSSOVER_PROB:
@@ -193,14 +191,13 @@ class Graph():
                         #check if there are uncompatible edges --> edges that brings to nodes in middle layer not existing
                         for e in nodes[i].neighbours:
                             # print(type(e))
-                            if e.node.type == "middle" and e.node.id > middle_size:
+                            if e.node.type == "middle" and e.node.id > middle_size-1:
                                 nodes[i].neighbours.remove(e)
 
-                            #modify the node to the one corresponding this set of nodes
+                            #modify the node to the references of the actual graph
                             for x in nodes:
                                 if (e.node.id == x.id and e.node.type == x.type ):
                                     e.node = x
-                                    break
                             # e.node = next(x for x in nodes if (e.node.id == x.id and e.node.type == x.type )) 
 
        
@@ -221,9 +218,9 @@ class Graph():
                                 node.neighbours.append(Edge(j,weight))
                     nodes.append(node)
                          
-        #output layer ok from parent
+        # #output layer ok from parent
         
-        #modify weights
+        # #modify weights
         for i in nodes:
             if i.type == "input" or i.type == "middle": # output layer does not have weights
                 for w in i.neighbours:
@@ -238,7 +235,7 @@ class Graph():
                     #modify weights with certain probability    
                     if random.random() < MUTATION_PROB_WEIGHTS:
                         w.weight += random.uniform(-MAX_SEVERITY_OF_MUTATION, +MAX_SEVERITY_OF_MUTATION)
-
+        # print(nodes)
         return cls(input_size = input_size, 
                     middle_size = middle_size,
                     output_size = output_size,
@@ -247,13 +244,13 @@ class Graph():
     def __repr__(self):
         base= f"\nGraph:\n\tTotal_size={self.total_size}, input_size: {self.input_size}, middle_size: {self.middle_size}, output_size: {self.output_size}\n"
         for i in self.nodes:
-            base += f"{i}, "
+            base += f"\t{i}, "
         return base
 
     def __str__(self):
         base= f"\nGraph:\n\tTotal_size={self.total_size}, input_size: {self.input_size}, middle_size: {self.middle_size}, output_size: {self.output_size}\n"
         for i in self.nodes:
-            base += f"{i}, "
+            base += f"\t{i}, "
         return base
         
     def __deepcopy__(self, memo):
@@ -269,16 +266,18 @@ def generate_initial_population(pop_size=POPULATION_SIZE):
     population = []
     for i in range(pop_size):
         G = Graph(input_size=INPUT_SIZE,output_size=OUTPUT_SIZE)
-        # print(type(G))
+        print(f" Generating {i} individual, graph_size:{len(G.nodes)}")
         population.append([G,-1])
     print("len of population:",len(population))
     return population
 
 def generate_next_population(parent_1, parent_2, pop_size=POPULATION_SIZE):
-    population = [[copy.deepcopy(parent_1),-1],[copy.deepcopy(parent_2),-1]]
-    for i in range(pop_size-2):
+    # population = [[parent_1,-1]]
+    population = [[parent_1,-1],[parent_2,-1]]
+    # print(f"The copy of the best id is {id(population[0][0])}")
+    for i in range(pop_size-2): #### REMEMBER ADD -2 when adding parents to population
         G = Graph.fromParents(parent_1,parent_2, input_size=INPUT_SIZE,output_size=OUTPUT_SIZE)
-        # print(type(G))
+        print(f" Generating {i} individual, graph:{G}")
         population.append([G,-1])
     print("len of population:",len(population))
     return population
@@ -303,12 +302,12 @@ def main():
         print(f"Testing population of generation {NUMBER_OF_GENERATIONS-generation_counter}")
         counter=0
         for p in population:
-            # print(f"Testing individual n {counter}")
+            print(f"\rTesting individual n {counter}")
+            # print(f"Printing individual {counter},\n {p[0]}")
             counter += 1
 
             def test_individual(p):
                 
-
                 batch = iris.data
                 prediction = []
                 for b in batch:
@@ -365,10 +364,11 @@ def main():
                 p[1] = report
                 return report
 
-            test_individual(p)
+            print(test_individual(p))
             # pool.map(test_individual, population)
-        # for i in p[1]:
-        #     print(type(i),i)
+        
+        # for i in population[1]:
+        #     print(f"results: {i}")
 
         #select the best two individuals
         mx=max(population[0][1],population[1][1])
@@ -382,7 +382,6 @@ def main():
                 mx != population[i][1]:
                 second_best_value=population[i][1]
 
-        print(mx,second_best_value)
         for i in range(len(population)):
             if population[i][1] == mx:
                 best_value_index= i
@@ -390,19 +389,17 @@ def main():
                 second_best_value_index= i
         best = population[best_value_index][0]
         second_best = population[second_best_value_index][0]
-        
 
-        print(mx,best_value_index)
-        print(second_best_value,second_best_value_index)
+        print("The best is ",mx,best_value_index)
+        print("The second best is",second_best_value,second_best_value_index)
         # for i in p[1]:
         #     print(i)
 
         print(f"Best individial {type(best)} f1 score: {test_individual(population[best_value_index])}")
-        print(f"Best individial {type(best)} f1 score: {test_individual(population[best_value_index])}")
-        print(f"Best individial {type(best)} f1 score: {test_individual(population[best_value_index])}")
+        print(f"Second best individial {type(best)} f1 score: {test_individual(population[second_best_value_index])}")
 
-        print(f"Best individial f1 score: {test_individual(population[0])}")
-        print(f"Best individial f1 score: {test_individual(population[1])}")
+        # print(f"Best individial f1 score: {test_individual(population[0])}")
+        # print(f"Second best individial f1 score: {test_individual(population[1])}")
         if(mx>=0.9):
             break
 
