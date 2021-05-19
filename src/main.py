@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
-#TODO: Check deepcopy/copy of the graph because is not sharing the info from one version to the other
 
 TRIGGER = 2.45 #minimum potential to activate the neuron
 DECAY = 0.25   #decay of the potential for each timestep
 MAX_TIME = 20
 
 MIN_INITIAL_NODES = 20 #20
-MAX_INITIAL_NODES = 50 #50
+MAX_INITIAL_NODES = 40 #50
 MAX_MIDDLE_SIZE = 80
 
-POPULATION_SIZE = 30
+POPULATION_SIZE = 60
 
 MUTATION_PROB_EDGES= 0.005 #probability of adding or removing an edge
 MUTATION_PROB_WEIGHTS= 0.02 #probability of changing the or removing an edge
@@ -26,6 +25,8 @@ INPUT_SIZE=4
 OUTPUT_SIZE=3
 NUMBER_OF_GENERATIONS = 1000
 
+from concurrent.futures import thread
+from itertools import count
 from mimetypes import init
 import random
 from sklearn.datasets import load_iris
@@ -266,7 +267,7 @@ def generate_initial_population(pop_size=POPULATION_SIZE):
     population = []
     for i in range(pop_size):
         G = Graph(input_size=INPUT_SIZE,output_size=OUTPUT_SIZE)
-        print(f" Generating {i} individual, graph_size:{len(G.nodes)}")
+        # print(f" Generating {i} individual, graph_size:{len(G.nodes)}")
         population.append([G,-1])
     print("len of population:",len(population))
     return population
@@ -277,10 +278,14 @@ def generate_next_population(parent_1, parent_2, pop_size=POPULATION_SIZE):
     # print(f"The copy of the best id is {id(population[0][0])}")
     for i in range(pop_size-2): #### REMEMBER ADD -2 when adding parents to population
         G = Graph.fromParents(parent_1,parent_2, input_size=INPUT_SIZE,output_size=OUTPUT_SIZE)
-        print(f" Generating {i} individual, graph:{G}")
+        # print(f" Generating {i} individual, graph:{G}")
         population.append([G,-1])
     print("len of population:",len(population))
     return population
+
+import threading
+import time
+import multiprocessing
 
 def main():
     print("Executing main")
@@ -301,8 +306,28 @@ def main():
         generation_counter -=1
         print(f"Testing population of generation {NUMBER_OF_GENERATIONS-generation_counter}")
         counter=0
+
+        # threadLock = threading.Lock()
+        threads = []
+
+        # class myThread (threading.Thread):
+        #     def __init__(self, threadID, counter, p ):
+        #         threading.Thread.__init__(self)
+        #         self.threadID = threadID
+        #         self.counter = counter
+        #         self.p = p
+
+        #     def run(self):
+        #         # print ("Starting " + self.name)
+        #         # Get lock to synchronize threads
+        #         threadLock.acquire()
+        #         test_individual(self.p)
+        #         # Free lock to release next thread
+        #         threadLock.release()
+
+
         for p in population:
-            print(f"\rTesting individual n {counter}")
+            # print(f"\rTesting individual n {counter}")
             # print(f"Printing individual {counter},\n {p[0]}")
             counter += 1
 
@@ -364,11 +389,19 @@ def main():
                 p[1] = report
                 return report
 
+            # t=myThread(counter,counter,p)
+            # t = multiprocessing.Process(target=test_individual, args=(p,))
+            # t.start()
+            # threads.append(t)
             print(test_individual(p))
             # pool.map(test_individual, population)
         
         # for i in population[1]:
         #     print(f"results: {i}")
+
+        # Wait for all threads to complete
+        # for t in threads:
+        #     t.join()
 
         #select the best two individuals
         mx=max(population[0][1],population[1][1])
