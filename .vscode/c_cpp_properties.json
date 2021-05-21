@@ -1,0 +1,23 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/opt/ros/noetic/include/**",
+        "/home/matteo/catkin_ws/devel/include/**",
+        "/home/matteo/catkin_ws/src/flox_autonomous/include/**",
+        "/home/matteo/catkin_ws/src/mavros/libmavconn/include/**",
+        "/home/matteo/PX4-Autopilot/Tools/sitl_gazebo/include/**",
+        "/home/matteo/catkin_ws/src/mavros/mavros/include/**",
+        "/home/matteo/catkin_ws/src/mavros/mavros_msgs/include/**",
+        "/home/matteo/catkin_ws/src/mavros/test_mavros/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}
